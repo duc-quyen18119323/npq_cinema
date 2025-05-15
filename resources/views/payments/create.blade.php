@@ -9,13 +9,21 @@
             <p><b>Số điện thoại:</b> {{ $booking->customer_phone }}</p>
             <p><b>Phim:</b> {{ $booking->showtime->movie->title ?? '' }}</p>
             <p><b>Suất chiếu:</b> {{ $booking->showtime->show_date ?? '' }} | {{ $booking->showtime->start_time ?? '' }} - {{ $booking->showtime->end_time ?? '' }}</p>
-            <p><b>Ghế:</b> {{ $booking->seat->seat_number ?? '' }}</p>
+            <p><b>Ghế:</b>
+                @if($booking->seats && $booking->seats->count())
+                    @foreach($booking->seats as $seat)
+                        <span class="badge bg-info text-dark">{{ $seat->seat_number }}</span>
+                    @endforeach
+                @else
+                    {{ $booking->seat->seat_number ?? '' }}
+                @endif
+            </p>
             <hr>
             @php
                 $accountNo = '9971790631';
                 $bankId = 'VCB'; // Vietcombank
                 $accountName = 'HO DUC QUYEN';
-                $amount = $booking->seat->price ?? 0;
+                $amount = $booking->seats && $booking->seats->count() ? $booking->seats->sum('price') : ($booking->seat->price ?? 0);
                 $addInfo = $booking->ticket_code;
                 $qrUrl = "https://img.vietqr.io/image/{$bankId}-{$accountNo}-compact2.png?amount={$amount}&addInfo={$addInfo}&accountName=" . urlencode($accountName);
             @endphp

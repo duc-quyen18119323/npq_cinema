@@ -37,11 +37,25 @@
                 </tr>
                 <tr>
                     <th>Ghế:</th>
-                    <td>{{ $booking->seat->seat_number }}</td>
+                    <td>
+                        @if($booking->seats && $booking->seats->count())
+                            @foreach($booking->seats as $seat)
+                                <span class="badge bg-info text-dark">{{ $seat->seat_number }}</span>
+                            @endforeach
+                        @else
+                            {{ $booking->seat->seat_number ?? '' }}
+                        @endif
+                    </td>
                 </tr>
                 <tr>
                     <th>Giá vé:</th>
-                    <td>{{ number_format($booking->seat->price) }} VNĐ</td>
+                    <td>
+                        @if($booking->seats && $booking->seats->count())
+                            {{ number_format($booking->seats->sum('price')) }} VNĐ
+                        @else
+                            {{ number_format($booking->seat->price ?? 0) }} VNĐ
+                        @endif
+                    </td>
                 </tr>
                 <tr>
                     <th>Trạng thái:</th>

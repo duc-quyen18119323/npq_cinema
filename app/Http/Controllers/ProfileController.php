@@ -16,7 +16,7 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
-        $bookings = $request->user()->bookings()->with(['showtime.movie', 'seat'])->orderBy('created_at', 'desc')->get();
+        $bookings = $request->user()->bookings()->with(['showtime.movie', 'seats'])->orderBy('created_at', 'desc')->get();
         return view('profile.edit', [
             'user' => $request->user(),
             'bookings' => $bookings

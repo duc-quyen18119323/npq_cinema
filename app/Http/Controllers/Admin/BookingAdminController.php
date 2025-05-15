@@ -12,7 +12,7 @@ class BookingAdminController extends Controller
      */
     public function index(Request $request)
     {
-        $query = \App\Models\Booking::with(['user', 'showtime.movie', 'seat.room']);
+        $query = \App\Models\Booking::with(['user', 'showtime.movie', 'seats.room']);
         if ($request->filled('email')) {
             $query->whereHas('user', function ($q) use ($request) {
                 $q->where('email', 'like', '%' . $request->email . '%');
@@ -53,7 +53,7 @@ class BookingAdminController extends Controller
      */
     public function show(string $id)
     {
-        $booking = \App\Models\Booking::with(['showtime.movie', 'showtime.room', 'seat'])->findOrFail($id);
+        $booking = \App\Models\Booking::with(['showtime.movie', 'showtime.room', 'seats'])->findOrFail($id);
         return view('admin.bookings.show', compact('booking'));
     }
 

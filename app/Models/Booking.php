@@ -15,9 +15,9 @@ class Booking extends Model
         return $this->belongsTo(Showtime::class);
     }
 
-    public function seat()
+    public function seats()
     {
-        return $this->belongsTo(Seat::class);
+        return $this->belongsToMany(Seat::class, 'booking_seat');
     }
 
     public function payment()

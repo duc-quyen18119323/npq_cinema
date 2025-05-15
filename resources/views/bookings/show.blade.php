@@ -8,8 +8,22 @@
             <p><b>Phim:</b> {{ $booking->showtime->movie->title ?? '' }}</p>
             <p><b>Suất chiếu:</b> {{ $booking->showtime->show_date ?? '' }} | {{ $booking->showtime->start_time ?? '' }} - {{ $booking->showtime->end_time ?? '' }}</p>
             <p><b>Phòng:</b> {{ $booking->showtime->room->name ?? '' }}</p>
-            <p><b>Ghế:</b> {{ $booking->seat->seat_number ?? '' }}</p>
-            <p><b>Giá vé:</b> {{ number_format($booking->seat->price ?? 0) }} đ</p>
+            <p><b>Ghế:</b>
+                @if($booking->seats && $booking->seats->count())
+                    @foreach($booking->seats as $seat)
+                        <span class="badge bg-info text-dark">{{ $seat->seat_number }}</span>
+                    @endforeach
+                @else
+                    {{ $booking->seat->seat_number ?? '' }}
+                @endif
+            </p>
+            <p><b>Giá vé:</b>
+                @if($booking->seats && $booking->seats->count())
+                    {{ number_format($booking->seats->sum('price')) }} đ
+                @else
+                    {{ number_format($booking->seat->price ?? 0) }} đ
+                @endif
+            </p>
             <p><b>Tên khách hàng:</b> {{ $booking->customer_name }}</p>
             <p><b>Số điện thoại:</b> {{ $booking->customer_phone }}</p>
             <p><b>Trạng thái:</b> <span class="badge bg-{{ $booking->status == 'paid' ? 'success' : 'warning' }}">{{ $booking->status == 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</span></p>

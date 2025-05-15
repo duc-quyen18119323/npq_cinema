@@ -145,7 +145,13 @@
                                         </td>
 
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ optional($booking->seat)->seat_number ?? 'N/A' }}
+                                            @if($booking->seats && $booking->seats->count())
+                                                @foreach($booking->seats as $seat)
+                                                    <span class="badge bg-info text-dark">{{ $seat->seat_number }}</span>
+                                                @endforeach
+                                            @else
+                                                N/A
+                                            @endif
                                         </td>
 
                                         <td class="px-6 py-4 whitespace-nowrap text-sm">

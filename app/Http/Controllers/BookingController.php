@@ -13,7 +13,11 @@ class BookingController extends Controller
         $showtime = \App\Models\Showtime::with('room')->findOrFail($showtime_id);
         $room = $showtime->room;
         $seats = \App\Models\Seat::where('room_id', $room->id)->get();
-        $booked = \App\Models\Booking::where('showtime_id', $showtime_id)->pluck('seat_id')->toArray();
+        $booked = \DB::table('booking_seat')
+        ->join('bookings', 'booking_seat.booking_id', '=', 'bookings.id')
+        ->where('bookings.showtime_id', $showtime_id)
+        ->pluck('booking_seat.seat_id')
+        ->toArray();
         $seatArr = $seats->map(function($seat) use ($booked) {
             return [
                 'id' => $seat->id,
@@ -33,7 +37,7 @@ class BookingController extends Controller
      */
     public function index()
     {
-        return response()->json(Booking::with(['showtime', 'seat', 'payment'])->get());
+        return response()->json(Booking::with(['showtime', 'seats', 'payment'])->get());
     }
 
     /**
@@ -66,34 +70,32 @@ class BookingController extends Controller
             'customer_phone' => 'required',
             'status' => 'required|in:unpaid,paid',
         ]);
-        $created = [];
-        foreach ($data['seat_ids'] as $seat_id) {
-            // Kiểm tra ghế đã được đặt cho suất chiếu này chưa
-            $exists = \App\Models\Booking::where('showtime_id', $data['showtime_id'])
-                ->where('seat_id', $seat_id)
-                ->exists();
-            if (!$exists) {
-                // Sinh mã vé tạm thởi, sau đó cập nhật lại với id
-                $booking = \App\Models\Booking::create([
-                    'user_id' => auth()->check() ? auth()->id() : null,
-                    'showtime_id' => $data['showtime_id'],
-                    'seat_id' => $seat_id,
-                    'customer_name' => $data['customer_name'],
-                    'customer_phone' => $data['customer_phone'],
-                    'status' => $data['status'],
-                    'ticket_code' => '',
-                ]);
-                $booking->ticket_code = 'VE' . date('Ymd') . str_pad($booking->id, 5, '0', STR_PAD_LEFT);
-                $booking->save();
-                $created[] = $booking;
-            }
-        }
-        if (count($created)) {
-            // Chuyển hướng tới trang chi tiết của booking đầu tiên
-            return redirect()->route('bookings.show', $created[0]->id)->with('success', 'Đặt vé thành công!');
-        } else {
+
+        // Kiểm tra các ghế đã được đặt cho suất chiếu này chưa
+        $exists = \App\Models\Booking::where('showtime_id', $data['showtime_id'])
+            ->whereHas('seats', function ($q) use ($data) {
+                $q->whereIn('seats.id', $data['seat_ids']);
+            })
+            ->exists();
+        if ($exists) {
             return back()->withErrors(['seat_ids' => 'Tất cả các ghế bạn chọn đã được đặt trước!'])->withInput();
         }
+
+        // Tạo booking
+        $booking = \App\Models\Booking::create([
+            'user_id' => auth()->check() ? auth()->id() : null,
+            'showtime_id' => $data['showtime_id'],
+            'customer_name' => $data['customer_name'],
+            'customer_phone' => $data['customer_phone'],
+            'status' => $data['status'],
+            'ticket_code' => '',
+        ]);
+        // Gán ghế cho booking
+        $booking->seats()->attach($data['seat_ids']);
+        // Sinh mã vé
+        $booking->ticket_code = 'VE' . date('Ymd') . str_pad($booking->id, 5, '0', STR_PAD_LEFT);
+        $booking->save();
+        return redirect()->route('bookings.show', $booking->id)->with('success', 'Đặt vé thành công!');
     }
 
     /**
@@ -102,7 +104,6 @@ class BookingController extends Controller
     public function show(Booking $booking)
     {
         return view('bookings.show', compact('booking'));
-        return response()->json($booking->load(['showtime', 'seat', 'payment']));
     }
 
     /**
@@ -120,13 +121,12 @@ class BookingController extends Controller
     {
         $data = $request->validate([
             'showtime_id' => 'required|exists:showtimes,id',
-            'seat_id' => 'required|exists:seats,id',
             'customer_name' => 'required',
             'customer_phone' => 'required',
             'status' => 'required|in:unpaid,paid',
         ]);
         $booking->update($data);
-        return response()->json($booking->load(['showtime', 'seat', 'payment']));
+        return response()->json($booking->load(['showtime', 'seats', 'payment']));
     }
 
     /**
